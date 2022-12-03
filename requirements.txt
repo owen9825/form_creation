@@ -1,0 +1,5 @@
+# https://github.com/googleworkspace/python-samples/blob/main/forms/quickstart/requirements.txt
+argparse
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
