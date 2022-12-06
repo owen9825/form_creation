@@ -1,8 +1,7 @@
 from __future__ import print_function
 
 import argparse
-import random
-from typing import Dict
+from typing import Dict, List
 
 # https://developers.google.com/forms/api/quickstart/python
 
@@ -89,6 +88,7 @@ def clear_questions(forms_service, form_id: str):
         indices = indices[batch_size:]
         if not batch:
             continue
+        # todo: why does this always fail for the last batch?
         print(f"Deleting questions {batch}")
         body = {
             "requests": [
@@ -104,10 +104,34 @@ def clear_questions(forms_service, form_id: str):
         print(f"Deletion: {deletion}")
 
 
+def submit_batch(questions: List[dict], forms_service, form_id: str):
+    body = {"requests": questions}
+    result = forms_service.forms().batchUpdate(formId=form_id, body=body).execute()
+    questions.clear()
+
+
 def create_questions_in_form(forms_service, form_id: str):
     location_counter = 0
+    questions = [{
+        "createItem": {
+            "item": {
+                "title": "What is your name? (for deduplication)",
+                "questionItem": {
+                    "question": {
+                        "required": True,
+                        "textQuestion": {
+                            "paragraph": False
+                        }
+                    }
+                }
+            },
+            "location": {
+                "index": location_counter
+            }
+        }
+    }]
+    location_counter += 1
     for question_text, body_type in naming_questions.items():
-        questions = []
         for name in sorted_names:
             questions.append(
                 {
@@ -127,9 +151,9 @@ def create_questions_in_form(forms_service, form_id: str):
                     }
                 })
             location_counter += 1
-        body = {"requests": questions}
-        result = forms_service.forms().batchUpdate(formId=form_id, body=body).execute()
-        print(f"Added questions for {name}: {result}")
+            if len(questions) > batch_size:
+                submit_batch(questions, forms_service, form_id=form_id)
+    submit_batch(questions, forms_service, form_id=form_id)
 
 
 if __name__ == "__main__":
