@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import argparse
 import random
+from typing import Dict
 
 # https://developers.google.com/forms/api/quickstart/python
 
@@ -23,13 +24,35 @@ def get_authenticated_forms_service():
         Http()), discoveryServiceUrl=DISCOVERY_DOC, static_discovery=False)
 
 
-naming_questions = [
-    "How easily (0-20) would this name be understood by the mainstream electorate?",
-    "How well (0-20) does this name engender the aspirations of the electorate?",
-    "Does this name reflect the party's agreed values? Individual Freedom; Advancement; Deep Ecology; Safety; Ethical Conduct; Equity.",
-    "How effectively (0-20) could this name be used for advertisement; identity; and graphic-design aspects of public relations?",
-    "How well (0-30) does this name allow for long-term investment and recognition, for relevance and support over a long timeframe?",
-]
+question_body = {
+    "textQuestion": {
+        "paragraph": False
+    },
+    "choiceQuestion": {
+        "type": "DROP_DOWN",
+        "options": [
+            {"value": "Yes"},
+            {"value": "No"}
+        ],
+        "shuffle": False
+    },
+    "scaleQuestion": {
+        "low": 0,
+        "high": 10
+    }
+
+}
+
+naming_questions: Dict[str, str] = {
+    "How easily would this name be understood by the mainstream electorate? 🤔": "scaleQuestion",
+    "How well does this name engender the aspirations of the electorate? 🌠": "scaleQuestion",
+    "How well does this name reflect the party's agreed values? Individual Freedom; Advancement; Deep Ecology; Safety; "
+        "Ethical Conduct; Equity 🌟": "scaleQuestion",
+    "How effectively could this name be used for advertisement; identity; and graphic-design aspects of "
+    "public relations? 📺": "scaleQuestion",
+    "How well does this name allow for long-term investment and recognition, for relevance and support over a "
+    "long timeframe? ⏳": "scaleQuestion",
+}
 
 raw_names = {
     "Equalib", "Australian Democrats", "Science Party", "Fusion Party Australia", "Innovation Party", "Fusion",
@@ -51,26 +74,50 @@ for name in raw_names:
     sorting_key = name if not name.lower().startswith('the ') else name[4:]
     sortable_names[sorting_key] = name
 
-
 sorted_names = [sortable_names[key] for key in sorted(sortable_names.keys())]
+
+batch_size = 10
+
+
+def clear_questions(forms_service, form_id: str):
+    # More reliable than updating the questions
+    existing = forms_service.forms().get(formId=form_id).execute()
+    print(f"There are {len(existing.get('items', []))} existing items")
+    indices = list(range(len(existing.get("items", []))))
+    for b in range(1, (len(indices) // batch_size) + 1):
+        batch = indices[:batch_size]
+        indices = indices[batch_size:]
+        if not batch:
+            continue
+        print(f"Deleting questions {batch}")
+        body = {
+            "requests": [
+                {
+                    "deleteItem": {
+                        "location":
+                            {"index": i}
+                    }
+                }
+                for i in range(len(batch))]
+        }
+        deletion = forms_service.forms().batchUpdate(formId=form_id, body=body).execute()
+        print(f"Deletion: {deletion}")
 
 
 def create_questions_in_form(forms_service, form_id: str):
     location_counter = 0
-    for name in sorted_names:
+    for question_text, body_type in naming_questions.items():
         questions = []
-        for question in naming_questions:
+        for name in sorted_names:
             questions.append(
                 {
                     "createItem": {
                         "item": {
-                            "title": question + " " + name,
+                            "title": name + ": " + question_text,
                             "questionItem": {
                                 "question": {
                                     "required": True,
-                                    "textQuestion": {
-                                        "paragraph": False
-                                    }
+                                    body_type: question_body[body_type]
                                 }
                             }
                         },
@@ -96,5 +143,6 @@ if __name__ == "__main__":
         help="The identifier for the form being updated",
     )
     args = parser.parse_args()
-    create_questions_in_form(forms_service=get_authenticated_forms_service(), form_id=args.form_id)
-
+    forms_service = get_authenticated_forms_service()
+    clear_questions(forms_service=forms_service, form_id=args.form_id)
+    create_questions_in_form(forms_service=forms_service, form_id=args.form_id)
