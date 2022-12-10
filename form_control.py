@@ -54,24 +54,23 @@ naming_questions: Dict[str, str] = {
 }
 
 raw_names = {
-    "Equalib", "Australian Democrats", "Science Party", "Fusion Party Australia", "Innovation Party", "Fusion",
-    "Fusion Party", "Reason Party", "Progressives", "One but Many, we are Australian", "Fusion Australia Party",
-    "Intergenerational Equity Party", "Fusion", "ISIS Party", "The AEGIS Party", "Australian Democracy Party",
-    "Rational", "Environment & Science Party (ESP)", "Future", "Evocratic Party", "Evidence-Based Policy",
-    "Progressive Alliance", "The Australia Party", "The Australian Vision Party", "Progress Party", "Progressive Party",
-    "Eco Liberals", "Lime", "Third Way", "fusionparty.org.au", "The Real Alternative", "The Agile Party",
-    "Fusion Party Australia", "The Rational Collective", "Fusion (aka the Fusion Party of Australia)", "FUSION",
-    "Australian Fusion League", "Connect Party / Connection Party", "Australian Freedom League",
-    "The Rational Alliance", "Good Future Australia", "The Secular Science Party", "Democracy and Labour Party",
-    "The Teals", "The New Progressive Movement", "The Realignment Party",
-    "The Modern Progressives − UBI, Climate Justice, etc", "Science and Engineering Technology Party",
-    "Innovation Paradise", "Humanity Party", "Fusion"
+    "Equalib", "Science Party", "Fusion Party Australia", "Innovation Party", "Fusion", "Fusion Party", "Reason party",
+    "Progressives", "One but Many, we are Australian", "Fusion Australia Party", "Intergenerational equity party",
+    "ISIS Party", "Fusion", "The AEGIS Party", "Australian Democracy Party", "Rational",
+    "Environment & Science Party (ESP)", "Future", "Evocratic Party", "Evidence-Based Policy", "Progressive Alliance",
+    "The Australia Party", "The Australia Vision Party ", "Progress Party", "Progressive Party", "Eco Liberals", "Lime",
+    "Third Way", "fusionparty.org.au", "The Real Alternative", "The Agile Party", "Fusion Party Australia",
+    "The Rational Collective", "Fusion (aka the Fusion Party of Australia).", "FUSION", "Australian Fusion League",
+    "Connect or Connection Party", "Australian Freedom League", "The Rational Alliance", "Good Future Australia",
+    "The Secular Science Party", "Democracy and Labour Party ", "The Teals", "The New Progressive Movement",
+    "The Realignment Party", "The Modern Progressives - UBI, Climate Justice, etc", "N/A",
+    "Science and Engineering Technology Party", "Innovation Paradise", "Humanity Party"
 }
 
 sortable_names = {}
 for name in raw_names:
     sorting_key = name if not name.lower().startswith('the ') else name[4:]
-    sortable_names[sorting_key] = name
+    sortable_names[sorting_key.strip()] = name.strip()
 
 sorted_names = [sortable_names[key] for key in sorted(sortable_names.keys())]
 
