@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import argparse
-from typing import Dict, List
+from typing import Dict, List, Tuple, Union
 
 # https://developers.google.com/forms/api/quickstart/python
 
@@ -42,15 +42,15 @@ question_body = {
 
 }
 
-naming_questions: Dict[str, str] = {
-    "How easily would this name be understood by the mainstream electorate? 🤔": "scaleQuestion",
-    "How well does this name engender the aspirations of the electorate? 🌠": "scaleQuestion",
+naming_questions: Dict[str, Tuple[int, str]] = {
+    "How easily would this name be understood by the mainstream electorate? 🤔": (2, "scaleQuestion"),
+    "How well does this name engender the aspirations of the electorate? 🌠": (2, "scaleQuestion"),
     "How well does this name reflect the party's agreed values? Individual Freedom; Advancement; Deep Ecology; Safety; "
-        "Ethical Conduct; Equity 🌟": "scaleQuestion",
+        "Ethical Conduct; Equity 🌟": (0, "scaleQuestion"),
     "How effectively could this name be used for advertisement; identity; and graphic-design aspects of "
-    "public relations? 📺": "scaleQuestion",
+    "public relations? 📺": (2, "scaleQuestion"),
     "How well does this name allow for long-term investment and recognition, for relevance and support over a "
-    "long timeframe? ⏳": "scaleQuestion",
+    "long timeframe? ⏳": (3, "scaleQuestion"),
 }
 
 raw_names = {
@@ -130,7 +130,8 @@ def create_questions_in_form(forms_service, form_id: str):
         }
     }]
     location_counter += 1
-    for question_text, body_type in naming_questions.items():
+    for question_text, details in naming_questions.items():
+        body_type = details[1]
         for name in sorted_names:
             questions.append(
                 {
