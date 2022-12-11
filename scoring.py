@@ -78,7 +78,7 @@ def get_name_and_question_columns(headers: List[str]) -> Tuple[Dict[int, Name], 
     return names_by_column, questions_by_column, closing_questions_by_column
 
 
-def print_scores(scores: Dict[Question, Dict[Name, int]], closing_scores: Dict[Question, int]):
+def print_scores(scores: Dict[Question, Dict[Name, int]]):
     total_naming_scores: Dict[Name, int] = {}
     for question, naming_scores in scores.items():
         summarized = sorted([(name, score) for name, score in naming_scores.items()], key=itemgetter(1), reverse=True)
@@ -115,7 +115,7 @@ def run_name_calculation(sheets_service, sheet_id):
     closing_scores: Dict[Question, int] = {q: 0 for q in CLOSING_QUESTIONS}
     approval: Dict[Name, int] = {n: 0 for n in names_by_column}  # Some questions are meant to be yes/no
     totals: Dict[Name, int] = {n: 0 for n in raw_names}
-    seen_emails = Dict[str, str]  # email -> timestamp
+    seen_emails: Dict[str, str] = {}  # email -> timestamp
     seen_names: Dict[str, str] = {}  # name -> email
     for r in range(1, len(data)):
         row = data[r]
