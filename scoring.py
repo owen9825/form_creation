@@ -72,6 +72,7 @@ def get_name_and_question_columns(headers: List[str]) -> Tuple[Dict[int, Name], 
                 components = parse_party_and_question(column_name=header)
                 if components:
                     names_by_column[h] = components[0]
+                    print(f"{components[0]} is in column {h}")
                     questions_by_column[h] = components[1]
                 else:
                     closing_questions_by_column[h] = header
@@ -86,7 +87,7 @@ def print_scores(scores: Dict[Question, Dict[Name, int]]):
             total_naming_scores[name] = total_naming_scores.get(name, 0) + score
         print(f"Scores for {question}")
         for entry in summarized[:10]:
-            print(f"{entry[0]: {entry[1]}}")
+            print(f"{entry[0]}: {entry[1]}")
     listed_results = [(key, val) for key, val in total_naming_scores.items()]
     listed_results.sort(key=itemgetter(1), reverse=True)
     print(f"Overall scores:")
@@ -111,7 +112,9 @@ def print_closing_scores(closing_scores: Dict[Question, int]):
 def run_name_calculation(sheets_service, sheet_id):
     data = get_sheet_data(sheets_service, sheet_id)
     names_by_column, questions_by_column, switching_columns = get_name_and_question_columns(data[0])
-    scores: Dict[Question, Dict[Name, int]] = {q: {n: 0 for n in names_by_column} for q in questions_by_column}
+    scores: Dict[Question, Dict[Name, int]] = {}
+    for q in questions_by_column.values():
+        scores[q] = {n: 0 for n in names_by_column.values()}
     closing_scores: Dict[Question, int] = {q: 0 for q in CLOSING_QUESTIONS}
     approval: Dict[Name, int] = {n: 0 for n in names_by_column}  # Some questions are meant to be yes/no
     totals: Dict[Name, int] = {n: 0 for n in raw_names}
