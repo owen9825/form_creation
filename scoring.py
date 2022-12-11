@@ -73,6 +73,7 @@ def get_name_and_question_columns(headers: List[str]) -> Tuple[Dict[int, Name], 
                 if components:
                     names_by_column[h] = components[0]
                     print(f"{components[0]} is in column {h}")
+                    # todo: only the first question has the detail. The rest are just unicode
                     questions_by_column[h] = components[1]
                 else:
                     closing_questions_by_column[h] = header
