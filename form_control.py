@@ -54,13 +54,13 @@ naming_questions: Dict[str, Tuple[int, str]] = {
 }
 
 raw_names = {
-    "Equilib", "Science Party", "Fusion Party Australia", "Innovation Party", "Fusion", "Fusion Party",
-    "One but Many, we are Australian", "Fusion Australia Party", "Intergenerational equity party",
-    "Fusion", "The AEGIS Party", "Australian Democracy Party", "Rational",
+    "Equilib", "Science Party", "Innovation Party", "Fusion",
+    "One but Many, we are Australian", "Intergenerational equity party",
+    "The AEGIS Party", "Australian Democracy Party", "Rational",
     "Environment & Science Party (ESP)", "Future", "Evocratic Party", "Evidence-Based Policy", "Progressive Alliance",
     "The Australia Party", "The Australia Vision Party ", "Progress Party", "Lime",
-    "Third Way", "The Real Alternative", "The Agile Party", "Fusion Party Australia",
-    "The Rational Collective", "Fusion (aka the Fusion Party of Australia).", "FUSION", "Australian Fusion League",
+    "Third Way", "The Real Alternative", "The Agile Party",
+    "The Rational Collective", "Australian Fusion League",
     "Connect or Connection Party", "Australian Freedom League", "The Rational Alliance", "Good Future Australia",
     "The Secular Science Party", "Democracy and Labour Party ", "The Teals", "The New Progressive Movement",
     "The Realignment Party", "N/A",
