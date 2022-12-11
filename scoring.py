@@ -8,7 +8,7 @@ from googleapiclient.errors import HttpError
 from httplib2 import Http
 from oauth2client import client, file, tools
 
-from form_control import naming_questions
+from form_control import NAMING_QUESTIONS, CLOSING_QUESTIONS, FUSION, raw_names
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
@@ -40,9 +40,9 @@ def get_sheet_data(sheets_service, sheet_id: str) -> Optional[List[List[Any]]]:
         print(err)
 
 
-def parse_party_and_question(column_name: str):
+def parse_party_and_question(column_name: str) -> Optional[List[str]]:
     if ":" not in column_name:
-        raise ValueError(f"Our predicted delimiter was missing from this column: {column_name}")
+        return None
     else:
         return column_name.rsplit(":", maxsplit=1)
 
@@ -54,27 +54,31 @@ EMAIL_COL = 1
 NAME_COL = 2
 
 
-def get_name_and_question_columns(headers: List[str]) -> Tuple[Dict[int, Name], Dict[int, Question]]:
+def get_name_and_question_columns(headers: List[str]) -> Tuple[Dict[int, Name], Dict[int, Question], Dict[int, Question]]:
     names_by_column: Dict[int, Name] = {}
     questions_by_column: Dict[int, Question] = {}
-    for c, column in enumerate(headers):
-        if c == TIMESTAMP_COL and column != "Timestamp":
-            raise ValueError(f"It was thought that the timestamps were in column {c}")
-        elif c == EMAIL_COL and column != "Email address":
-            raise ValueError(f"It was thought that the email addresses were in column {c}")
-        elif c == NAME_COL and "your name" not in column.lower():
-            raise ValueError(f"It was thought that the voters' names would be in column {c}")
+    closing_questions_by_column: Dict[int, Question] = {}  # Questions about switching costs
+    for h, header in enumerate(headers):
+        if h == TIMESTAMP_COL and header != "Timestamp":
+            raise ValueError(f"It was thought that the timestamps were in column {h}")
+        elif h == EMAIL_COL and header != "Email address":
+            raise ValueError(f"It was thought that the email addresses were in column {h}")
+        elif h == NAME_COL and "your name" not in header.lower():
+            raise ValueError(f"It was thought that the voters' names would be in column {h}")
         else:
-            if not column:
+            if not header:
                 break  # No more meaningful columns
             else:
-                party, question = parse_party_and_question(column_name=column)
-                names_by_column[c] = party
-                questions_by_column[c] = question
-    return names_by_column, questions_by_column
+                components = parse_party_and_question(column_name=header)
+                if components:
+                    names_by_column[h] = components[0]
+                    questions_by_column[h] = components[1]
+                else:
+                    closing_questions_by_column[h] = header
+    return names_by_column, questions_by_column, closing_questions_by_column
 
 
-def print_scores(scores: Dict[Question, Dict[Name, int]]):
+def print_scores(scores: Dict[Question, Dict[Name, int]], closing_scores: Dict[Question, int]):
     total_naming_scores: Dict[Name, int] = {}
     for question, naming_scores in scores.items():
         summarized = sorted([(name, score) for name, score in naming_scores.items()], key=itemgetter(1), reverse=True)
@@ -98,12 +102,19 @@ def print_approval(approval: Dict[Name, int]):
         print(f"{entry[0]}: 👍 {entry[1]:,}")
 
 
+def print_closing_scores(closing_scores: Dict[Question, int]):
+    print(f"The closing questions scored these totals:")
+    for entry in closing_scores:
+        print(f"{entry[0]}: {entry[1]}")
+
+
 def run_name_calculation(sheets_service, sheet_id):
     data = get_sheet_data(sheets_service, sheet_id)
-    scores: Dict[str, Dict[str, int]]
-    names_by_column, questions_by_column = get_name_and_question_columns(data[0])
+    names_by_column, questions_by_column, switching_columns = get_name_and_question_columns(data[0])
     scores: Dict[Question, Dict[Name, int]] = {q: {n: 0 for n in names_by_column} for q in questions_by_column}
+    closing_scores: Dict[Question, int] = {q: 0 for q in CLOSING_QUESTIONS}
     approval: Dict[Name, int] = {n: 0 for n in names_by_column}  # Some questions are meant to be yes/no
+    totals: Dict[Name, int] = {n: 0 for n in raw_names}
     seen_emails = Dict[str, str]  # email -> timestamp
     seen_names: Dict[str, str] = {}  # name -> email
     for r in range(1, len(data)):
@@ -119,20 +130,28 @@ def run_name_calculation(sheets_service, sheet_id):
                 else:
                     seen_emails[col] = row[TIMESTAMP_COL]
             elif c == NAME_COL:
-                normalized = name.lower()
+                normalized = col.lower()
                 if normalized in seen_names:
-                    print(f"{name} already cast a vote as {seen_names[normalized]} "
+                    print(f"{col} already cast a vote as {seen_names[normalized]} "
                           f"at {seen_emails[seen_names[normalized]]} − is {row[EMAIL_COL]} really a different person?")
                 # Tricky to enforce − a moderator needs to get involved
                 seen_names[normalized] = row[EMAIL_COL]
+            elif c in switching_columns:
+                question = switching_columns[c]
+                weighting = CLOSING_QUESTIONS[question][0]
+                score = int(col) * weighting
+                closing_scores[question] += score
+                totals[FUSION] += score
             else:
                 name = names_by_column.get(c)
                 question = questions_by_column[c]
-                weighting = naming_questions[question][0]
+                weighting = NAMING_QUESTIONS[question][0]
                 if weighting == 0:
                     approval[name] += int(bool(int(col) >= 5))
                 else:
-                    scores[question][name] += int(col) * weighting
+                    score = int(col) * weighting
+                    scores[question][name] += score
+                    totals[name] += score
     print_scores(scores)
     print_approval(approval)
     print(f"{len(data)} rows were retrieved")

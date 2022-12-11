@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import argparse
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 
 # https://developers.google.com/forms/api/quickstart/python
 
@@ -42,7 +42,7 @@ question_body = {
 
 }
 
-naming_questions: Dict[str, Tuple[int, str]] = {
+NAMING_QUESTIONS: Dict[str, Tuple[int, str]] = {
     "How easily would this name be understood by the mainstream electorate? 🤔 (weighting: 2)": (2, "scaleQuestion"),
     "How well does this name engender the aspirations of the electorate? 🌠 (weighting: 2)": (2, "scaleQuestion"),
     "How well does this name reflect the party's agreed values? Individual Freedom; Advancement; Deep Ecology; Safety; "
@@ -53,8 +53,10 @@ naming_questions: Dict[str, Tuple[int, str]] = {
     "long timeframe? ⏳ (weighting: 3)": (3, "scaleQuestion"),
 }
 
+FUSION = "Fusion"
+
 raw_names = {
-    "Equilib", "Science Party", "Innovation Party", "Fusion",
+    "Equilib", "Science Party", "Innovation Party", FUSION,
     "One but Many, we are Australian", "Intergenerational equity party",
     "The AEGIS Party", "Australian Democracy Party", "Rational",
     "Environment & Science Party (ESP)", "Future", "Evocratic Party", "Evidence-Based Policy", "Progressive Alliance",
@@ -108,7 +110,7 @@ def submit_batch(questions: List[dict], forms_service, form_id: str):
     questions.clear()
 
 
-initial_questions = [{
+INTITIAL_QUESTIONS = [{
         "createItem": {
             "item": {
                 "title": "What is your name? (for deduplication)",
@@ -127,16 +129,16 @@ initial_questions = [{
         }
     }]
 
-closing_questions: Dict[str, Tuple[int, str]] = {
+CLOSING_QUESTIONS: Dict[str, Tuple[int, str]] = {
     "What is the switching cost, from the brand recognition "
         "already achieved under \"Fusion\"? 🔀 (weighting: 1)": (1, "scaleQuestion"),
 }
 
 
 def create_questions_in_form(forms_service, form_id: str):
-    questions = initial_questions.copy()
-    location_counter = len(initial_questions)
-    for question_text, details in naming_questions.items():
+    questions = INTITIAL_QUESTIONS.copy()
+    location_counter = len(INTITIAL_QUESTIONS)
+    for question_text, details in NAMING_QUESTIONS.items():
         print(f"Adding questions for {question_text[:7]}…")
         body_type = details[1]
         for n, name in enumerate(sorted_names):
@@ -166,7 +168,7 @@ def create_questions_in_form(forms_service, form_id: str):
     if len(questions) > batch_size:
         submit_batch(questions, forms_service, form_id=form_id)
     print("Adding closing questions")
-    for question_text, details in closing_questions.items():
+    for question_text, details in CLOSING_QUESTIONS.items():
         print(f"Adding questions for {question_text[:7]}…")
         body_type = details[1]
         questions.append(
