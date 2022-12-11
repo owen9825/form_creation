@@ -43,18 +43,18 @@ question_body = {
 }
 
 naming_questions: Dict[str, Tuple[int, str]] = {
-    "How easily would this name be understood by the mainstream electorate? 🤔": (2, "scaleQuestion"),
-    "How well does this name engender the aspirations of the electorate? 🌠": (2, "scaleQuestion"),
+    "How easily would this name be understood by the mainstream electorate? 🤔 (weighting: 2)": (2, "scaleQuestion"),
+    "How well does this name engender the aspirations of the electorate? 🌠 (weighting: 2)": (2, "scaleQuestion"),
     "How well does this name reflect the party's agreed values? Individual Freedom; Advancement; Deep Ecology; Safety; "
-        "Ethical Conduct; Equity 🌟": (0, "scaleQuestion"),
+        "Ethical Conduct; Equity 🌟 (weighting: 0)": (0, "scaleQuestion"),
     "How effectively could this name be used for advertisement; identity; and graphic-design aspects of "
-    "public relations? 📺": (2, "scaleQuestion"),
+    "public relations? 📺 (weighting: 2)": (2, "scaleQuestion"),
     "How well does this name allow for long-term investment and recognition, for relevance and support over a "
-    "long timeframe? ⏳": (3, "scaleQuestion"),
+    "long timeframe? ⏳ (weighting: 3)": (3, "scaleQuestion"),
 }
 
 raw_names = {
-    "Equalib", "Science Party", "Fusion Party Australia", "Innovation Party", "Fusion", "Fusion Party",
+    "Equilib", "Science Party", "Fusion Party Australia", "Innovation Party", "Fusion", "Fusion Party",
     "One but Many, we are Australian", "Fusion Australia Party", "Intergenerational equity party",
     "Fusion", "The AEGIS Party", "Australian Democracy Party", "Rational",
     "Environment & Science Party (ESP)", "Future", "Evocratic Party", "Evidence-Based Policy", "Progressive Alliance",
@@ -87,7 +87,6 @@ def clear_questions(forms_service, form_id: str):
         indices = indices[batch_size:]
         if not batch:
             continue
-        # todo: why does this always fail for the last batch?
         print(f"Deleting questions {batch}")
         body = {
             "requests": [
@@ -109,9 +108,7 @@ def submit_batch(questions: List[dict], forms_service, form_id: str):
     questions.clear()
 
 
-def create_questions_in_form(forms_service, form_id: str):
-    location_counter = 0
-    questions = [{
+initial_questions = [{
         "createItem": {
             "item": {
                 "title": "What is your name? (for deduplication)",
@@ -125,14 +122,27 @@ def create_questions_in_form(forms_service, form_id: str):
                 }
             },
             "location": {
-                "index": location_counter
+                "index": 0
             }
         }
     }]
-    location_counter += 1
+
+closing_questions: Dict[str, Tuple[int, str]] = {
+    "What is the switching cost, from the brand recognition "
+        "already achieved under \"Fusion\"? 🔀 (weighting: 1)": (1, "scaleQuestion"),
+}
+
+
+def create_questions_in_form(forms_service, form_id: str):
+    questions = initial_questions.copy()
+    location_counter = len(initial_questions)
     for question_text, details in naming_questions.items():
+        print(f"Adding questions for {question_text[:7]}…")
         body_type = details[1]
-        for name in sorted_names:
+        for n, name in enumerate(sorted_names):
+            if n == 1:
+                # Shorten the question to just the Unicode
+                question_text = question_text.rsplit("(")[0].strip()[-1:]
             questions.append(
                 {
                     "createItem": {
@@ -153,6 +163,31 @@ def create_questions_in_form(forms_service, form_id: str):
             location_counter += 1
             if len(questions) > batch_size:
                 submit_batch(questions, forms_service, form_id=form_id)
+    if len(questions) > batch_size:
+        submit_batch(questions, forms_service, form_id=form_id)
+    print("Adding closing questions")
+    for question_text, details in closing_questions.items():
+        print(f"Adding questions for {question_text[:7]}…")
+        body_type = details[1]
+        questions.append(
+            {
+                "createItem": {
+                        "item": {
+                            "title": question_text,
+                            "questionItem": {
+                                "question": {
+                                    "required": True,
+                                    body_type: question_body[body_type]
+                                }
+                            }
+                        },
+                        "location": {
+                            "index": location_counter
+                        }
+                    }
+                })
+        location_counter += 1
+    print(f"Submitting final batch of {len(questions)} questions")
     submit_batch(questions, forms_service, form_id=form_id)
 
 
