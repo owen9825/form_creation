@@ -37,7 +37,7 @@ question_body = {
     },
     "scaleQuestion": {
         "low": 0,
-        "high": 10
+        "high": 5
     }
 
 }
@@ -185,7 +185,7 @@ def create_questions_in_form(forms_service, form_id: str):
                                     "type": "RADIO",
                                     "options": [
                                         {"value": str(n)}
-                                        for n in range(0, 11)
+                                        for n in range(0, 6)
                                     ]
                                 }
                             }
