@@ -79,7 +79,7 @@ sorted_names = [sortable_names[key] for key in sorted(sortable_names.keys())]
 batch_size = 10
 
 
-def clear_questions(forms_service, form_id: str):
+def clear_questions(forms_service, form_id: str, repeat=True):
     # More reliable than updating the questions
     existing = forms_service.forms().get(formId=form_id).execute()
     print(f"There are {len(existing.get('items', []))} existing items")
@@ -100,8 +100,15 @@ def clear_questions(forms_service, form_id: str):
                 }
                 for i in range(len(batch))]
         }
-        deletion = forms_service.forms().batchUpdate(formId=form_id, body=body).execute()
-        print(f"Deletion: {deletion}")
+        try:
+            deletion = forms_service.forms().batchUpdate(formId=form_id, body=body).execute()
+            print(f"Deletion: {deletion}")
+        except Exception as e:
+            if repeat:
+                print(f"Trying again to clear questions in form {form_id}")
+                (clear_questions(forms_service, form_id=form_id, repeat=False))
+            else:
+                raise e
 
 
 def submit_batch(questions: List[dict], forms_service, form_id: str):
@@ -110,7 +117,8 @@ def submit_batch(questions: List[dict], forms_service, form_id: str):
     questions.clear()
 
 
-INTITIAL_QUESTIONS = [{
+ITEM_UPDATES = [
+    {
         "createItem": {
             "item": {
                 "title": "What is your name? (for deduplication)",
@@ -127,7 +135,8 @@ INTITIAL_QUESTIONS = [{
                 "index": 0
             }
         }
-    }]
+    }
+]
 
 CLOSING_QUESTIONS: Dict[str, Tuple[int, str]] = {
     "What is the switching cost, from the brand recognition "
@@ -135,43 +144,72 @@ CLOSING_QUESTIONS: Dict[str, Tuple[int, str]] = {
 }
 
 
+def generate_page_break(question_text: str, location: int) -> dict:
+    question_symbol = question_text.rsplit("(")[0].strip()[-1:]
+    return {
+        "createItem": {
+            "item": {
+                "pageBreakItem": {},
+                "title": f"Questions about {question_symbol}"
+            },
+            "location": {
+                "index": location
+            }
+        }
+    }
+
+
 def create_questions_in_form(forms_service, form_id: str):
-    questions = INTITIAL_QUESTIONS.copy()
-    location_counter = len(INTITIAL_QUESTIONS)
+    updates: List[dict] = ITEM_UPDATES.copy()
+    location_counter = len(ITEM_UPDATES)
     for question_text, details in NAMING_QUESTIONS.items():
-        print(f"Adding questions for {question_text[:7]}…")
-        body_type = details[1]
-        for n, name in enumerate(sorted_names):
-            if n == 1:
-                # Shorten the question to just the Unicode
-                question_text = question_text.rsplit("(")[0].strip()[-1:]
-            questions.append(
-                {
-                    "createItem": {
-                        "item": {
-                            "title": name + ": " + question_text,
-                            "questionItem": {
-                                "question": {
-                                    "required": True,
-                                    body_type: question_body[body_type]
+        print(f"Adding question {question_text[:7]}…")
+        weighting, question_type = details[:]
+        updates.append(generate_page_break(question_text, location=location_counter))
+        location_counter += 1
+        if question_type == "scaleQuestion":
+            updates.append({
+                "createItem": {
+                    "item": {
+                        "title": question_text,
+                        "questionGroupItem": {
+                            "questions": [
+                                {"required": True,
+                                 "rowQuestion": {
+                                     "title": name
+                                 }}
+                                for name in sorted_names
+                            ],
+                            "grid": {
+                                "columns": {
+                                    "type": "RADIO",
+                                    "options": [
+                                        {"value": str(n)}
+                                        for n in range(0, 11)
+                                    ]
                                 }
                             }
-                        },
-                        "location": {
-                            "index": location_counter
                         }
+                    },
+                    "location": {
+                        "index": location_counter
                     }
-                })
-            location_counter += 1
-            if len(questions) > batch_size:
-                submit_batch(questions, forms_service, form_id=form_id)
-    if len(questions) > batch_size:
-        submit_batch(questions, forms_service, form_id=form_id)
+                }
+            })
+        else:
+            raise NotImplementedError(question_type)
+        location_counter += 1
+        if len(updates) > batch_size:
+            submit_batch(updates, forms_service, form_id=form_id)
+    if len(updates) > batch_size:
+        submit_batch(updates, forms_service, form_id=form_id)
     print("Adding closing questions")
     for question_text, details in CLOSING_QUESTIONS.items():
         print(f"Adding questions for {question_text[:7]}…")
-        body_type = details[1]
-        questions.append(
+        updates.append(generate_page_break(question_text, location=location_counter))
+        location_counter += 1
+        question_type = details[1]
+        updates.append(
             {
                 "createItem": {
                         "item": {
@@ -179,7 +217,7 @@ def create_questions_in_form(forms_service, form_id: str):
                             "questionItem": {
                                 "question": {
                                     "required": True,
-                                    body_type: question_body[body_type]
+                                    question_type: question_body[question_type]
                                 }
                             }
                         },
@@ -189,8 +227,8 @@ def create_questions_in_form(forms_service, form_id: str):
                     }
                 })
         location_counter += 1
-    print(f"Submitting final batch of {len(questions)} questions")
-    submit_batch(questions, forms_service, form_id=form_id)
+    print(f"Submitting final batch of {len(updates)} questions")
+    submit_batch(updates, forms_service, form_id=form_id)
 
 
 if __name__ == "__main__":
