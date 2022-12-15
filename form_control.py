@@ -65,7 +65,7 @@ raw_names = {
     "The Rational Collective", "Australian Fusion League",
     "Connect or Connection Party", "Australian Freedom League", "The Rational Alliance", "Good Future Australia",
     "The Secular Science Party", "Democracy and Labour Party ", "The Teals", "The New Progressive Movement",
-    "The Realignment Party", "N/A",
+    "The Realignment Party",
     "Science and Engineering Technology Party", "Innovation Paradise", "Humanity Party"
 }
 
