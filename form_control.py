@@ -185,7 +185,7 @@ def create_questions_in_form(forms_service, form_id: str):
                                     "type": "RADIO",
                                     "options": [
                                         {"value": str(n)}
-                                        for n in range(0, 6)
+                                        for n in range(1, 6)
                                     ]
                                 }
                             }

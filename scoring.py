@@ -170,7 +170,7 @@ def run_name_calculation(sheets_service, sheet_id, output_filename: Optional[str
                 question = questions_by_column[c]
                 weighting = NAMING_QUESTIONS[question][0]
                 if weighting == 0:
-                    approval[name] += int(bool(int(col) >= 2.5))
+                    approval[name] += int(bool(int(col) >= 3))
                 else:
                     score = int(col) * weighting
                     scores[question][name] += score
